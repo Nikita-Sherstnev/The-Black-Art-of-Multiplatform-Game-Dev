@@ -1,8 +1,14 @@
 #include <iostream>
 #include <SDL.h>
 
-SDL_Surface* image = NULL;
+SDL_Surface* background = NULL;
+SDL_Surface* sprite = NULL;
 SDL_Window* window = NULL;
+
+bool ProgramIsRunning();
+bool LoadImages();
+void FreeImages();
+
 
 int main(int argc, char* args[])
 {
@@ -14,34 +20,92 @@ int main(int argc, char* args[])
     }
     
     window = SDL_CreateWindow("SDL!!!", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, 32);
-    //Load the image
-    image = SDL_LoadBMP("graphics/image.bmp");
-    if(image == NULL)
+
+    if(!LoadImages())
     {
-        printf("Image failed to load!\n");
+        printf("Images failed to load!\n");
+        FreeImages();
         SDL_Quit();
         return 0;
     }
+
     SDL_Renderer *render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (render == nullptr) {
         std::cout << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
         return 1;
     }
-    //Draw the image
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(render, image);
-    SDL_FreeSurface(image);
-    if (texture == nullptr){
+
+    SDL_Texture *backTexture = SDL_CreateTextureFromSurface(render, background);
+    if (backTexture == nullptr){
         std::cout << "SDL_CreateTextureFromSurface Error: " << SDL_GetError() << std::endl;
         return 1;
     }
-    /* Draw the render on window */
-    SDL_RenderClear(render); // Fill render with color
-    SDL_RenderCopy(render, texture, NULL, NULL); // Copy the texture into render
-    SDL_RenderPresent(render); // Show render on window
-    //Wait
-    SDL_Delay(3000);
-    //Finish
-    SDL_FreeSurface(image);
+
+    SDL_Rect backPos;
+    backPos.x = 0;
+    backPos.y = 0;
+    backPos.w = 800;
+    backPos.h = 600;
+
+    SDL_RenderCopy(render, backTexture, NULL, &backPos);
+    SDL_RenderPresent(render);
+
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(render, sprite);
+
+    while(ProgramIsRunning())
+    {
+        SDL_Rect spritePos;
+        spritePos.x = rand()%800;
+        spritePos.y = rand()%600;
+        spritePos.w = 100;
+        spritePos.h = 100;
+
+        SDL_RenderCopy(render, texture, NULL, &spritePos);
+        SDL_RenderPresent(render);
+        SDL_Delay(100);
+    }
+    
+    SDL_DestroyTexture(texture);
+    SDL_DestroyTexture(backTexture);
+    SDL_DestroyRenderer(render);
+    SDL_DestroyWindow(window);
+
     SDL_Quit();
     return 1;
+}
+
+bool ProgramIsRunning() {
+    SDL_Event event;
+    bool running = true;
+
+    while(SDL_PollEvent(&event)) {
+        if(event.type == SDL_QUIT)
+        running = false;
+    }
+    return running;
+}
+
+bool LoadImages()
+{
+    background = SDL_LoadBMP("../graphics/download.bmp");
+    if(background == NULL)
+        return false;
+    sprite = SDL_LoadBMP("../graphics/sprite.bmp");
+    if(sprite == NULL)
+        return false;
+    return true;
+}
+
+void FreeImages()
+{
+    if(background != NULL)
+    {
+        SDL_FreeSurface(background);
+        background = NULL;
+    }
+    if(sprite != NULL)
+    {
+        SDL_FreeSurface(sprite);
+        sprite = NULL;
+    }
 }
